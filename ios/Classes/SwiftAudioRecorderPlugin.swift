@@ -30,18 +30,20 @@ public class SwiftAudioRecorderPlugin: NSObject, FlutterPlugin, AVAudioRecorderD
                 print("path: " + mPath)
             }
             let settings = [
-                AVFormatIDKey: getOutputFormatFromString(mExtension),
-                AVSampleRateKey: 12000,
-                AVNumberOfChannelsKey: 1,
+                AVFormatIDKey: Int(kAudioFormatMPEG4AAC),
+                AVSampleRateKey: 44100,
+                AVNumberOfChannelsKey: 2,
                 AVEncoderAudioQualityKey: AVAudioQuality.high.rawValue
             ]
             do {
-                try AVAudioSession.sharedInstance().setCategory(AVAudioSessionCategoryPlayAndRecord, with: AVAudioSessionCategoryOptions.defaultToSpeaker)
-                try AVAudioSession.sharedInstance().setActive(true)
-                
+                try AVAudioSession.sharedInstance().setCategory(AVAudioSessionCategoryPlayAndRecord)
                 audioRecorder = try AVAudioRecorder(url: URL(string: mPath)!, settings: settings)
                 audioRecorder.delegate = self
+                audioRecorder.isMeteringEnabled = true
+                audioRecorder.prepareToRecord();
+                try AVAudioSession.sharedInstance().setActive(true)
                 audioRecorder.record()
+                
             } catch {
                 print("fail")
                 result(FlutterError(code: "", message: "Failed to record", details: nil))
@@ -51,7 +53,13 @@ public class SwiftAudioRecorderPlugin: NSObject, FlutterPlugin, AVAudioRecorderD
         case "stop":
             print("stop")
             audioRecorder.stop()
-            audioRecorder = nil
+            do{
+              try AVAudioSession.sharedInstance().setActive(false)
+                
+            }catch{
+                print("error")
+            }
+            
             let duration = Int(Date().timeIntervalSince(startTime as Date) * 1000)
             isRecording = false
             var recordingResult = [String : Any]()
@@ -64,6 +72,7 @@ public class SwiftAudioRecorderPlugin: NSObject, FlutterPlugin, AVAudioRecorderD
             result(isRecording)
         case "hasPermissions":
             print("hasPermissions")
+       
             switch AVAudioSession.sharedInstance().recordPermission() {
             case AVAudioSessionRecordPermission.granted:
                 NSLog("granted")
